@@ -9,6 +9,13 @@ import curses
 import time
 import threading
 
+# Force colorama init for proper ANSI handling
+try:
+    from colorama import init
+    init()
+except ImportError:
+    pass  # colorama not available, will use raw ANSI
+
 
 class Difficulty:
     """AI difficulty levels."""
@@ -49,14 +56,15 @@ class ScoreTracker:
 
     def display_scores(self):
         """Display current session statistics."""
-        print("\n" + "=" * 30)
-        print("📊 SESSION STATISTICS")
-        print("=" * 30)
-        print(f"Player wins:      {self.player_wins}")
-        print(f"Computer wins:    {self.computer_wins}")
-        print(f"Draws:            {self.draws}")
-        print(f"Total games:      {self.total_games}")
-        print("=" * 30)
+        sys.stdout.write("\n" + "=" * 30 + "\n")
+        sys.stdout.write("📊 SESSION STATISTICS\n")
+        sys.stdout.write("=" * 30 + "\n")
+        sys.stdout.write(f"Player wins:      {self.player_wins}\n")
+        sys.stdout.write(f"Computer wins:    {self.computer_wins}\n")
+        sys.stdout.write(f"Draws:            {self.draws}\n")
+        sys.stdout.write(f"Total games:      {self.total_games}\n")
+        sys.stdout.write("=" * 30 + "\n")
+        sys.stdout.flush()
 
 
 def get_random_move(board):
@@ -78,7 +86,7 @@ def print_board(board, cursor_row=None, cursor_col=None):
         cursor_row: Row position of cursor (0-2), or None for no cursor
         cursor_col: Column position of cursor (0-2), or None for no cursor
     """
-    print("\n" + "=" * 9)
+    sys.stdout.write("\n" + "=" * 9 + "\n")
     for i, row in enumerate(board):
         # Build row with possible cursor highlighting
         row_str = []
@@ -89,10 +97,11 @@ def print_board(board, cursor_row=None, cursor_col=None):
                 row_str.append(highlighted_cell)
             else:
                 row_str.append(cell)
-        print(" | ".join(row_str))
+        sys.stdout.write(" | ".join(row_str) + "\n")
         if i < 2:
-            print("-" * 9)
-    print("=" * 9 + "\n")
+            sys.stdout.write("-" * 9 + "\n")
+    sys.stdout.write("=" * 9 + "\n")
+    sys.stdout.flush()
 
 
 def move_cursor(cursor_row, cursor_col, direction, board):
@@ -137,6 +146,22 @@ def get_arrow_move(stdscr, board):
     """
     cursor_row, cursor_col = 0, 0  # Start at top-left
 
+    # Initialize colors for curses
+    try:
+        curses.start_color()
+        curses.use_default_colors()
+        # Define color pairs: (pair_number, fg_color, bg_color)
+        # White for normal text
+        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
+        # Green for highlighted text
+        curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        # Red for error text
+        curses.init_pair(3, curses.COLOR_RED, curses.COLOR_BLACK)
+        # Bold effect using A_BOLD attribute
+    except:
+        # If color initialization fails, continue without colors
+        pass
+
     while True:
         # Clear previous cursor
         stdscr.clear()
@@ -144,16 +169,28 @@ def get_arrow_move(stdscr, board):
 
         # Display board with cursor
         board_display = [[board[i][j] for j in range(3)] for i in range(3)]
-        board_display[cursor_row][cursor_col] = f"{BOLD}{GREEN}X{RESET}"
+        board_display[cursor_row][cursor_col] = 'X'
 
         for i, row in enumerate(board_display):
-            stdscr.addstr(3 + i, 0, " | ".join(row))
+            row_str = " | ".join(row)
+            if i == cursor_row and cursor_row < 3:
+                # Highlight cursor row with colors
+                stdscr.addstr(3 + i, 0, row_str, curses.color_pair(2) | curses.A_BOLD)
+            else:
+                stdscr.addstr(3 + i, 0, row_str, curses.color_pair(1))
             if i < 2:
-                stdscr.addstr(4 + i, 0, "-" * 9)
+                stdscr.addstr(4 + i, 0, "-" * 9, curses.color_pair(1))
 
         # Display instructions
-        stdscr.addstr(7, 0, f"Cursor at: {cursor_row * 3 + cursor_col + 1} {BOLD}{GREEN}(Use arrow keys to move, Enter to place X){RESET}")
-        stdscr.addstr(8, 0, "Press Ctrl+C to cancel or 'q' to quit")
+        cursor_pos = f"Cursor at: {cursor_row * 3 + cursor_col + 1}"
+        if cursor_row < 3:
+            stdscr.addstr(7, 0, cursor_pos, curses.color_pair(2) | curses.A_BOLD)
+            stdscr.addstr(7, len(cursor_pos), "(Use arrow keys to move, Enter to place X)", curses.color_pair(2) | curses.A_BOLD)
+        else:
+            stdscr.addstr(7, 0, cursor_pos, curses.color_pair(1))
+            stdscr.addstr(7, len(cursor_pos), "(Use arrow keys to move, Enter to place X)", curses.color_pair(1))
+
+        stdscr.addstr(8, 0, "Press Ctrl+C to cancel or 'q' to quit", curses.color_pair(1))
         stdscr.refresh()
 
         # Get input
@@ -175,7 +212,7 @@ def get_arrow_move(stdscr, board):
                     return cursor_row, cursor_col
                 else:
                     # Show error message
-                    stdscr.addstr(7, 0, f"{BOLD}{RED}Cell already occupied!{RESET}         ")
+                    stdscr.addstr(7, 0, "Cell already occupied! ", curses.color_pair(3) | curses.A_BOLD)
                     stdscr.refresh()
                     time.sleep(1)
             # Handle quit command
