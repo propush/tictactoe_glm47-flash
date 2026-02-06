@@ -5,6 +5,9 @@ Run with: python3 tic_tac_toe.py
 """
 
 import sys
+import curses
+import time
+import threading
 
 
 class Difficulty:
@@ -12,6 +15,13 @@ class Difficulty:
     EASY = "easy"
     MEDIUM = "medium"
     HARD = "hard"
+
+
+# ANSI Color Codes
+RESET = "\033[0m"
+GREEN = "\033[32m"
+RED = "\033[31m"
+BOLD = "\033[1m"
 
 
 class ScoreTracker:
@@ -60,14 +70,122 @@ def get_random_move(board):
     return random.choice(available_moves) if available_moves else None
 
 
-def print_board(board):
-    """Print the current board state."""
+def print_board(board, cursor_row=None, cursor_col=None):
+    """Print the current board state with optional cursor highlighting.
+
+    Args:
+        board: Current board state
+        cursor_row: Row position of cursor (0-2), or None for no cursor
+        cursor_col: Column position of cursor (0-2), or None for no cursor
+    """
     print("\n" + "=" * 9)
     for i, row in enumerate(board):
-        print(" | ".join(row))
+        # Build row with possible cursor highlighting
+        row_str = []
+        for j, cell in enumerate(row):
+            if cursor_row is not None and i == cursor_row and j == cursor_col:
+                # Highlight cursor position
+                highlighted_cell = f"{BOLD}{GREEN}{cell}{RESET}"
+                row_str.append(highlighted_cell)
+            else:
+                row_str.append(cell)
+        print(" | ".join(row_str))
         if i < 2:
             print("-" * 9)
     print("=" * 9 + "\n")
+
+
+def move_cursor(cursor_row, cursor_col, direction, board):
+    """Move the cursor in the specified direction.
+
+    Args:
+        cursor_row: Current cursor row position
+        cursor_col: Current cursor column position
+        direction: 'up', 'down', 'left', or 'right'
+        board: Current board state (to prevent moving into occupied cells)
+
+    Returns:
+        New cursor position as (row, col)
+    """
+    new_row, new_col = cursor_row, cursor_col
+
+    if direction == 'up':
+        new_row = max(0, cursor_row - 1)
+    elif direction == 'down':
+        new_row = min(2, cursor_row + 1)
+    elif direction == 'left':
+        new_col = max(0, cursor_col - 1)
+    elif direction == 'right':
+        new_col = min(2, cursor_col + 1)
+
+    # Only allow moving to empty cells
+    if board[new_row][new_col] != ' ':
+        return cursor_row, cursor_col
+
+    return new_row, new_col
+
+
+def get_arrow_move(stdscr, board):
+    """Get move using arrow keys and Enter.
+
+    Args:
+        stdscr: curses window object for input
+        board: Current board state
+
+    Returns:
+        Tuple of (row, col) if move made, or None
+    """
+    cursor_row, cursor_col = 0, 0  # Start at top-left
+
+    while True:
+        # Clear previous cursor
+        stdscr.clear()
+        stdscr.refresh()
+
+        # Display board with cursor
+        board_display = [[board[i][j] for j in range(3)] for i in range(3)]
+        board_display[cursor_row][cursor_col] = f"{BOLD}{GREEN}X{RESET}"
+
+        for i, row in enumerate(board_display):
+            stdscr.addstr(3 + i, 0, " | ".join(row))
+            if i < 2:
+                stdscr.addstr(4 + i, 0, "-" * 9)
+
+        # Display instructions
+        stdscr.addstr(7, 0, f"Cursor at: {cursor_row * 3 + cursor_col + 1} {BOLD}{GREEN}(Use arrow keys to move, Enter to place X){RESET}")
+        stdscr.addstr(8, 0, "Press Ctrl+C to cancel or 'q' to quit")
+        stdscr.refresh()
+
+        # Get input
+        try:
+            key = stdscr.getch()
+
+            # Handle arrow keys
+            if key == curses.KEY_UP:
+                cursor_row, cursor_col = move_cursor(cursor_row, cursor_col, 'up', board)
+            elif key == curses.KEY_DOWN:
+                cursor_row, cursor_col = move_cursor(cursor_row, cursor_col, 'down', board)
+            elif key == curses.KEY_LEFT:
+                cursor_row, cursor_col = move_cursor(cursor_row, cursor_col, 'left', board)
+            elif key == curses.KEY_RIGHT:
+                cursor_row, cursor_col = move_cursor(cursor_row, cursor_col, 'right', board)
+            # Handle Enter key to place move
+            elif key == ord('\n') or key == curses.KEY_ENTER:
+                if board[cursor_row][cursor_col] == ' ':
+                    return cursor_row, cursor_col
+                else:
+                    # Show error message
+                    stdscr.addstr(7, 0, f"{BOLD}{RED}Cell already occupied!{RESET}         ")
+                    stdscr.refresh()
+                    time.sleep(1)
+            # Handle quit command
+            elif key == ord('q'):
+                return None
+        except KeyboardInterrupt:
+            return None
+
+        stdscr.clear()
+        stdscr.refresh()
 
 
 def check_winner(board, player):
@@ -217,8 +335,36 @@ def computer_move(board, difficulty):
 
 
 def get_player_move(board):
-    """Get valid move from player."""
+    """Get valid move from player.
+
+    Args:
+        board: Current board state
+
+    Returns:
+        (row, col) tuple of player's move
+    """
     while True:
+        # Try arrow key input first
+        try:
+            stdscr = curses.initscr()
+            stdscr.nodelay(0)  # Make getch blocking
+            stdscr.keypad(True)
+            stdscr.clear()
+            stdscr.refresh()
+
+            move = get_arrow_move(stdscr, board)
+
+            if move is not None:
+                curses.endwin()
+                return move
+            curses.endwin()
+        except Exception:
+            try:
+                curses.endwin()
+            except:
+                pass
+
+        # Fall back to number input
         try:
             move = input("Enter your move (1-9): ")
             move = int(move)
