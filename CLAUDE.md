@@ -56,8 +56,9 @@ python3 tic_tac_toe.py
 - `computer_move(board, difficulty)`: Dispatcher based on difficulty level
 
 **Minimax Algorithm**
-- `minimax(board, depth, maximizing_player)`: Recursive search with alpha-beta pruning
+- `minimax(board, depth, maximizing_player)`: Recursive search algorithm for Hard AI
 - Returns: 1 (win), -1 (loss), 0 (draw)
+- Note: Implementation is simplified without alpha-beta pruning optimization
 
 **Game Logic**
 - `check_winner(board, player)`: Checks 8 possible winning lines
@@ -75,10 +76,12 @@ python3 tic_tac_toe.py
 
 ## Key Implementation Details
 
-- **Terminal UI**: Uses `curses` library for color-coded display and cursor navigation
+- **Terminal UI**: Uses `curses` library with ANSI color codes (via colorama fallback) for color-coded display and cursor navigation
 - **Color pairs**: White (normal), Green (highlighted), Red (errors)
 - **Board representation**: 3x3 list of lists: `board[row][col]`
 - **Player is 'X', Computer is 'O'**
 - **Game ends** when winner found or board is full
-- **Persistent scores**: Stored in memory across multiple game sessions
+- **Persistent scores**: Stored in JSON file (`tic_tac_toe_scores.json`) and auto-saved after each game
 - **Keyboard interrupts**: Gracefully handled with exit message
+- **Minimax algorithm**: Implemented for Hard difficulty but without alpha-beta pruning (simplified implementation)
+- **Score tracking**: Tracks session statistics across multiple game sessions with file persistence
