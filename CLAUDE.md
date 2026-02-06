@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A simple command-line Tic-Tac-Toe game where the player plays against a basic AI computer. No external dependencies required.
+A terminal-based Tic-Tac-Toe game with multiple AI difficulty levels, arrow key navigation, and persistent score tracking. Built with Python's `curses` library for terminal UI.
 
 ## Running the Game
 
@@ -12,27 +12,73 @@ A simple command-line Tic-Tac-Toe game where the player plays against a basic AI
 python3 tic_tac_toe.py
 ```
 
-The game displays a numbered board (1-9) where players input moves by entering numbers.
+## Game Features
+
+### Input Methods
+- **Arrow keys**: Navigate the board with visual cursor highlighting
+- **Enter**: Place your X at the cursor position
+- **Keyboard interrupt (Ctrl+C)**: Cancel current move or quit game
+- **'q'**: Quit move selection mode
+- **Number input (fallback)**: Enter 1-9 if arrow keys fail
+
+### Difficulty Levels
+1. **Easy**: Completely random valid moves
+2. **Medium**: Basic strategy (win/block/center/corner/side)
+3. **Hard**: Minimax algorithm for perfect play (unbeatable)
+
+### Score Tracking
+- Persistent session statistics across multiple games
+- Tracks: player wins, computer wins, draws, total games
+- Displays at game start and game end
 
 ## Code Architecture
 
-Single-file script (`tic_tac_toe.py`) with clear functional separation:
+### Core Classes
+- **`ScoreTracker`**: Manages game statistics with persistence across sessions
+- **`Difficulty`**: Enum for AI difficulty levels
 
-- **Board display**: `print_board()` - Renders the 3x3 grid with ASCII borders
-- **Game logic**: `check_winner()` - Checks all 8 possible winning lines (rows, columns, diagonals)
-- **State checking**: `is_full()` - Determines if the board is full
-- **AI opponent**: `computer_move()` - Makes decisions in priority order:
-  1. Try to win immediately
-  2. Block player from winning
-  3. Take center if available
-  4. Take a random corner
-  5. Take a random side
-- **Player input**: `get_player_move()` - Validates input and converts numbers 1-9 to (row, col) coordinates
-- **Game loop**: `play_game()` - Manages the main game flow and play-again logic
+### Main Functions
+
+**Input Handling**
+- `get_arrow_move(stdscr, board)`: Arrow key-based move selection with curses
+  - Shows visual cursor with green highlighting
+  - Validates moves against occupied cells
+  - Supports quit ('q') and cancel (Ctrl+C)
+
+**Move Utilities**
+- `move_cursor(cursor_row, cursor_col, direction, board)`: Navigate board with bounds checking
+- `get_random_move(board)`: Returns random valid cell for Easy AI
+
+**AI Opponents**
+- `computer_move_easy(board)`: Random valid moves
+- `computer_move_medium(board)`: Win/block/center/corner/side priority
+- `computer_move_hard(board)`: Minimax algorithm
+- `computer_move(board, difficulty)`: Dispatcher based on difficulty level
+
+**Minimax Algorithm**
+- `minimax(board, depth, maximizing_player)`: Recursive search with alpha-beta pruning
+- Returns: 1 (win), -1 (loss), 0 (draw)
+
+**Game Logic**
+- `check_winner(board, player)`: Checks 8 possible winning lines
+- `is_full(board)`: Determines if board is full
+- `print_board(board, cursor_row, cursor_col)`: Renders board with optional cursor highlighting
+
+**Game Flow**
+- `play_game()`: Main loop managing:
+  - Score display at game start/end
+  - Difficulty selection
+  - Alternating turns (X then O)
+  - Win/draw detection
+  - Play-again logic
+- `get_player_move(board)`: Tries arrow keys first, falls back to number input
 
 ## Key Implementation Details
 
-- Board represented as a 3x3 list of lists: `board[row][col]`
-- Player is 'X', Computer is 'O'
-- Game ends when there's a winner or the board is full
-- Handles keyboard interrupts gracefully
+- **Terminal UI**: Uses `curses` library for color-coded display and cursor navigation
+- **Color pairs**: White (normal), Green (highlighted), Red (errors)
+- **Board representation**: 3x3 list of lists: `board[row][col]`
+- **Player is 'X', Computer is 'O'**
+- **Game ends** when winner found or board is full
+- **Persistent scores**: Stored in memory across multiple game sessions
+- **Keyboard interrupts**: Gracefully handled with exit message
