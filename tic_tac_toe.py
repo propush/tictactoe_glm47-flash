@@ -8,6 +8,8 @@ import sys
 import curses
 import time
 import threading
+import json
+import os
 
 # Force colorama init for proper ANSI handling
 try:
@@ -15,6 +17,9 @@ try:
     init()
 except ImportError:
     pass  # colorama not available, will use raw ANSI
+
+# Save file for persistent scores
+SCORE_FILE = "tic_tac_toe_scores.json"
 
 
 class Difficulty:
@@ -32,12 +37,51 @@ BOLD = "\033[1m"
 
 
 class ScoreTracker:
-    """Track game scores across multiple sessions."""
-    def __init__(self):
+    """Track game scores across multiple sessions with persistent storage."""
+
+    def __init__(self, score_file=None):
+        """Initialize score tracker and load scores from file if available.
+
+        Args:
+            score_file: Optional path to score file. Defaults to 'tic_tac_toe_scores.json'
+        """
+        self.score_file = score_file or SCORE_FILE
         self.player_wins = 0
         self.computer_wins = 0
         self.draws = 0
         self.total_games = 0
+        self.load_scores()
+
+    def load_scores(self):
+        """Load scores from file if it exists."""
+        if os.path.exists(self.score_file):
+            try:
+                with open(self.score_file, 'r') as f:
+                    data = json.load(f)
+                    self.player_wins = data.get('player_wins', 0)
+                    self.computer_wins = data.get('computer_wins', 0)
+                    self.draws = data.get('draws', 0)
+                    self.total_games = data.get('total_games', 0)
+            except (json.JSONDecodeError, IOError):
+                # If file is corrupted or unreadable, start fresh
+                self.player_wins = 0
+                self.computer_wins = 0
+                self.draws = 0
+                self.total_games = 0
+
+    def save_scores(self):
+        """Save current scores to file."""
+        try:
+            data = {
+                'player_wins': self.player_wins,
+                'computer_wins': self.computer_wins,
+                'draws': self.draws,
+                'total_games': self.total_games
+            }
+            with open(self.score_file, 'w') as f:
+                json.dump(data, f)
+        except IOError as e:
+            print(f"Warning: Could not save scores to file: {e}")
 
     def record_win(self, player_won, is_draw):
         """Record a win/loss/draw result.
@@ -53,6 +97,7 @@ class ScoreTracker:
             self.draws += 1
         else:
             self.computer_wins += 1
+        self.save_scores()  # Auto-save after recording
 
     def display_scores(self):
         """Display current session statistics."""
