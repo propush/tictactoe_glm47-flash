@@ -127,10 +127,6 @@ def move_cursor(cursor_row, cursor_col, direction, board):
     elif direction == 'right':
         new_col = min(2, cursor_col + 1)
 
-    # Only allow moving to empty cells
-    if board[new_row][new_col] != ' ':
-        return cursor_row, cursor_col
-
     return new_row, new_col
 
 
