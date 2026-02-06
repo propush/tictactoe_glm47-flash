@@ -14,6 +14,41 @@ class Difficulty:
     HARD = "hard"
 
 
+class ScoreTracker:
+    """Track game scores across multiple sessions."""
+    def __init__(self):
+        self.player_wins = 0
+        self.computer_wins = 0
+        self.draws = 0
+        self.total_games = 0
+
+    def record_win(self, player_won, is_draw):
+        """Record a win/loss/draw result.
+
+        Args:
+            player_won: True if player won
+            is_draw: True if game ended in a draw
+        """
+        self.total_games += 1
+        if player_won:
+            self.player_wins += 1
+        elif is_draw:
+            self.draws += 1
+        else:
+            self.computer_wins += 1
+
+    def display_scores(self):
+        """Display current session statistics."""
+        print("\n" + "=" * 30)
+        print("📊 SESSION STATISTICS")
+        print("=" * 30)
+        print(f"Player wins:      {self.player_wins}")
+        print(f"Computer wins:    {self.computer_wins}")
+        print(f"Draws:            {self.draws}")
+        print(f"Total games:      {self.total_games}")
+        print("=" * 30)
+
+
 def get_random_move(board):
     """Get a random valid move from the board."""
     available_moves = []
@@ -206,30 +241,37 @@ def get_player_move(board):
 
 def play_game():
     """Main game loop."""
-    print("Welcome to Tic-Tac-Toe!")
-    print("You are X, Computer is O")
-    print("Number positions: 1 2 3")
-    print("                  4 5 6")
-    print("                  7 8 9")
-
-    # Difficulty selection
-    print("\nSelect difficulty:")
-    print("1 - Easy (random moves)")
-    print("2 - Medium (basic strategy)")
-    print("3 - Hard (perfect play)")
-    difficulty = None
-    while difficulty not in ['1', '2', '3']:
-        choice = input("Enter your choice (1-3): ").lower()
-        if choice == '1':
-            difficulty = '1'
-        elif choice == '2':
-            difficulty = '2'
-        elif choice == '3':
-            difficulty = '3'
-        else:
-            print("Invalid choice. Please enter 1, 2, or 3.")
+    # Initialize score tracker
+    score_tracker = ScoreTracker()
 
     while True:
+        # Display current scores at the start of each game
+        score_tracker.display_scores()
+
+        print("Welcome to Tic-Tac-Toe!")
+        print("You are X, Computer is O")
+        print("Number positions: 1 2 3")
+        print("                  4 5 6")
+        print("                  7 8 9")
+
+        # Difficulty selection
+        print("\nSelect difficulty:")
+        print("1 - Easy (random moves)")
+        print("2 - Medium (basic strategy)")
+        print("3 - Hard (perfect play)")
+        difficulty = None
+        while difficulty not in ['1', '2', '3']:
+            choice = input("Enter your choice (1-3): ").lower()
+            if choice == '1':
+                difficulty = '1'
+            elif choice == '2':
+                difficulty = '2'
+            elif choice == '3':
+                difficulty = '3'
+            else:
+                print("Invalid choice. Please enter 1, 2, or 3.")
+
+        player_won = False
         # Initialize game state
         board = [[' ' for _ in range(3)] for _ in range(3)]
         player = 'X'
@@ -247,11 +289,13 @@ def play_game():
                 if check_winner(board, player):
                     print_board(board)
                     print("🎉 Congratulations! You win!")
+                    player_won = True
                     game_over = True
                 elif is_full(board):
                     print_board(board)
                     print("It's a draw!")
                     game_over = True
+                    player_won = None
                 else:
                     player = 'O'
             else:
@@ -263,16 +307,22 @@ def play_game():
                     print_board(board)
                     print("😔 Computer wins!")
                     game_over = True
+                    player_won = False
                 elif is_full(board):
                     print_board(board)
                     print("It's a draw!")
                     game_over = True
+                    player_won = None
                 else:
                     player = 'X'
+
+        # Record the result
+        score_tracker.record_win(player_won, player_won is None)
 
         play_again = input("\nPlay again? (y/n): ").lower()
         if play_again != 'y':
             print("\nThanks for playing!")
+            score_tracker.display_scores()
             break
 
 
