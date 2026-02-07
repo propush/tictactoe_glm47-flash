@@ -1,2 +1,7 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
 # Score file - contains persistent game statistics
 tic_tac_toe_scores.json
