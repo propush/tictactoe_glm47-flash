@@ -1,151 +1,170 @@
 # Tic-Tac-Toe Refactoring Documentation
 
-## Overview
+This document describes the improvements made to the Tic-Tac-Toe game codebase following Python design patterns.
 
-The Tic-Tac-Toe game has been successfully refactored from a single monolithic file into a well-organized Python package with modular components.
+## Design Principles Applied
 
-## Project Structure
+### 1. Separation of Concerns
+Code is organized into distinct layers with clear responsibilities:
+
+- **Game State Layer** (`game_state.py`): Manages the current state of the game
+- **Game Rules Layer** (`rules.py`): Implements game logic and validation
+- **AI Strategy Layer** (`ai_strategy.py`): Encapsulates AI behaviors
+- **Score Tracking Layer** (`score_tracker.py`): Manages statistics with dependency injection
+- **Game Coordinator** (`game_coordinator.py`): Coordinates between layers
+- **UI Layer** (`ui.py`): Handles display concerns
+- **Input Layer** (`input.py`): Handles player input
+
+### 2. Single Responsibility Principle
+Each class and module has one clear purpose:
+
+- `GameState`: Manages game state only
+- `TicTacToeRules`: Implements game rules only
+- `AIStrategy`: Each AI strategy has one responsibility
+- `ScoreTracker`: Manages scores with injected storage
+- `TicTacToeGame`: Coordinates game flow only
+
+### 3. Composition Over Inheritance
+AI strategies are composed using the Strategy pattern rather than inheritance:
+
+```python
+strategy = AIStrategyFactory.create('hard')
+move = strategy.get_move(board)
+```
+
+This makes it easy to:
+- Swap AI strategies at runtime
+- Test with mock strategies
+- Add new strategies without modifying existing code
+
+### 4. Dependency Injection
+ScoreTracker now uses dependency injection for testability:
+
+```python
+# Production
+score_tracker = ScoreTracker()
+
+# Testing
+from tic_tac_toe.score_tracker import InMemoryScoreStorage
+score_tracker = ScoreTracker(storage=InMemoryScoreStorage())
+```
+
+### 5. KISS (Keep It Simple)
+- Removed unnecessary abstractions
+- Simplified difficulty selection to use a single factory
+- Consolidated duplicate code
+
+## New Module Structure
 
 ```
 tic_tac_toe/
-├── __init__.py           # Package initialization
-├── constants.py          # All constants and configuration
-├── score_tracker.py      # Score management and persistence
-├── board.py              # Board operations and utilities
-├── ai.py                 # AI opponent logic and minimax
-├── input.py              # Player input handling
-├── ui.py                 # Terminal UI functions
-└── main.py               # Main game loop
-
-tic_tac_toe_game.py       # Entry point script
-test_refactored.py        # Test script for verification
+├── __init__.py              # Public API exports
+├── constants.py             # Configuration constants
+├── game_state.py            # Game state management
+├── rules.py                 # Game logic and rules
+├── ai_strategy.py           # AI strategy patterns
+├── game_coordinator.py      # Game flow coordination
+├── score_tracker.py         # Score management with DI
+├── ui.py                    # Terminal UI display
+├── input.py                 # Player input handling
+├── board.py                 # Board operations (backward compatible)
+├── ai.py                    # AI functions (backward compatible)
+└── main.py                  # Entry point (backward compatible)
 ```
 
-## Module Breakdown
+## Key Improvements
 
-### 1. `constants.py`
-Contains all configuration constants:
-- `SCORE_FILE` - Path to persistent scores
-- `Difficulty` enum - AI difficulty levels
-- ANSI color codes for terminal output
-- Board dimensions and player markers
+### 1. Better Testability
+- Dependencies injected through constructors
+- Abstract interfaces for storage and strategies
+- Clear separation allows unit testing of each layer
 
-### 2. `score_tracker.py`
-Manages game statistics with file persistence:
-- `ScoreTracker` class
-- Methods: `load_scores()`, `save_scores()`, `record_win()`, `display_scores()`
+### 2. Maintainability
+- Each module has single responsibility
+- Changes to game rules don't affect game state
+- Adding new AI difficulty is simple
 
-### 3. `board.py`
-Core board operations:
-- `get_random_move()` - Get random valid cell
-- `print_board()` - Render board with optional cursor
-- `move_cursor()` - Navigate with bounds checking
-- `check_winner()` - Win condition detection
-- `is_full()` - Board full check
-- `get_available_moves()` - List empty cells
-- `make_move()` - Place piece on board
+### 3. Flexibility
+- Easy to swap AI strategies
+- Storage implementations can be replaced
+- Game rules can be customized
 
-### 4. `ai.py`
-AI opponent logic:
-- `computer_move_easy()` - Random moves
-- `computer_move_medium()` - Win/block strategy
-- `computer_move_hard()` - Minimax algorithm
-- `minimax()` - Recursive search algorithm
-- `computer_move()` - Difficulty dispatcher
-- `get_difficulty_choice()` - User input for difficulty
+### 4. Backward Compatibility
+- Old functions kept for compatibility
+- Old entry points still work
+- Gradual migration path
 
-### 5. `input.py`
-Player input handling:
-- `get_arrow_move()` - Arrow key navigation with curses
-- `get_player_move()` - Main input dispatcher (curses → fallback)
+## Usage
 
-### 6. `ui.py`
-Terminal display functions:
-- `display_menu()` - Game menu and instructions
-- `display_result()` - Win/draw/loss display
-- `display_scores()` - Show statistics
-- `display_play_again_prompt()` - Play again question
-
-### 7. `main.py`
-Game coordinator:
-- `play_game()` - Main game loop
-- Orchestrates all modules
-
-## Running the Game
-
-### Option 1: Using entry point script
+### Running the Game
 ```bash
-python3 tic_tac_toe_game.py
+python3 -m tic_tac_toe.game_coordinator
+# or
+python3 tic_tac_toe/tic_tac_toe_game.py
 ```
 
-### Option 2: Using Python module
-```bash
-python3 -m tic_tac_toe.main
+### Using the Refactored API
+```python
+from tic_tac_toe import TicTacToeGame, ScoreTracker
+
+# Create game with dependency injection
+score_tracker = ScoreTracker(storage=InMemoryScoreStorage())
+game = TicTacToeGame(score_tracker)
+
+# Play game
+game.set_difficulty('hard')
+game.start_new_game()
+
+while True:
+    game.display_board()
+    result = game.play_turn()
+    if result['reason'] in ('win', 'draw'):
+        break
 ```
 
-### Option 3: Using import
-```bash
-python3 -c "from tic_tac_toe.main import play_game; play_game()"
-```
+## Migration Path
 
-## Running Tests
+1. **Old entry points still work**: `python3 -m tic_tac_toe.main`
+2. **New entry points available**: `python3 -m tic_tac_toe.game_coordinator`
+3. **Import old functions**: Still works from `tic_tac_toe.ai` and `tic_tac_toe.board`
+4. **Use new API**: Import from `tic_tac_toe.game_coordinator` and `tic_tac_toe.ai_strategy`
 
-```bash
-python3 test_refactored.py
-```
+## Testing Strategy
 
-## Testing Individual Modules
-
-You can import and test individual modules:
+The new architecture makes testing much easier:
 
 ```python
-from tic_tac_toe.board import check_winner, is_full
-from tic_tac_toe.ai import computer_move, minimax
-from tic_tac_toe.score_tracker import ScoreTracker
+from tic_tac_toe import TicTacToeRules
+
+# Test game rules
+assert TicTacToeRules.check_winner(board, 'X') == True
+assert TicTacToeRules.is_full(board) == False
 ```
 
-## Benefits of Refactoring
+```python
+from tic_tac_toe.ai_strategy import HardStrategy
 
-1. **Separation of Concerns**: Each module has a single, clear responsibility
-2. **Maintainability**: Code is organized and easier to modify
-3. **Testability**: Components can be tested independently
-4. **Reusability**: Modules can be imported and reused in other projects
-5. **Scalability**: Easy to add new features (new AI difficulties, etc.)
-6. **Readability**: Clear structure makes code easier to understand
-7. **Documentation**: Each module focuses on one aspect of the game
-
-## Migration from Original Implementation
-
-The refactored code maintains 100% backward compatibility:
-- All original functionality preserved
-- Same game mechanics and AI behavior
-- Same user interface and controls
-- Same score persistence mechanism
-
-## Key Design Decisions
-
-- **Constants centralized** in `constants.py` for consistency
-- **AI module enhanced** with difficulty input helper function
-- **Board utilities** expanded with `get_available_moves()` and `make_move()`
-- **UI module created** for centralized display logic
-- **Input module refined** to keep curses-based input and fallback logic separate
-- **Main module simplified** to coordinate all other modules
+# Test AI
+strategy = HardStrategy()
+move = strategy.get_move(board)
+# Validate move is valid
+```
 
 ## Future Enhancements
 
-With this modular structure, future additions become easier:
-- Add new difficulty levels
-- Implement different AI strategies
-- Add networking functionality (multiplayer)
-- Add GUI support
-- Add sound effects
-- Add more complex game modes
+The new architecture makes it easy to add:
 
-## Statistics
+1. **Undo functionality**: Add to GameState
+2. **Custom board sizes**: Add to TicTacToeRules
+3. **Different game modes**: Add to TicTacToeGame
+4. **Online multiplayer**: Add new strategies
+5. **Persistence**: Add different storage backends
 
-- Original file: ~558 lines (monolithic)
-- Refactored structure: ~720 lines (modular)
-- Modules created: 7
-- Test coverage: Basic unit tests for all modules
-- Syntax errors: 0
-- All tests passing: ✓
+## Performance Considerations
+
+The refactoring adds minimal overhead:
+- Strategy pattern adds small wrapper for dispatch
+- Dependency injection has zero runtime cost
+- Storage abstraction has negligible overhead
+
+The benefits (testability, maintainability) far outweigh the small performance cost.

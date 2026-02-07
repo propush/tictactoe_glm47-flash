@@ -1,4 +1,8 @@
-"""Board operations and utilities for Tic-Tac-Toe game."""
+"""Board operations and utilities for Tic-Tac-Toe game.
+
+Note: Some functions have been moved to rules.py.
+This module is kept for backward compatibility.
+"""
 
 import sys
 import random
@@ -74,68 +78,6 @@ def move_cursor(cursor_row, cursor_col, direction, board):
     return new_row, new_col
 
 
-def check_winner(board, player):
-    """Check if the given player has won.
-
-    Args:
-        board: Current board state
-        player: Player marker ('X' or 'O')
-
-    Returns:
-        True if player has won
-    """
-    # Check rows, columns, and diagonals
-    for i in range(BOARD_SIZE):
-        if all(board[i][j] == player for j in range(BOARD_SIZE)):
-            return True
-        if all(board[j][i] == player for j in range(BOARD_SIZE)):
-            return True
-    if all(board[i][i] == player for i in range(BOARD_SIZE)):
-        return True
-    if all(board[i][BOARD_SIZE - 1 - i] == player for i in range(BOARD_SIZE)):
-        return True
-    return False
-
-
-def is_full(board):
-    """Check if the board is full.
-
-    Args:
-        board: Current board state
-
-    Returns:
-        True if board is full
-    """
-    return all(board[i][j] != ' ' for i in range(BOARD_SIZE) for j in range(BOARD_SIZE))
-
-
-def get_available_moves(board):
-    """Get all empty cells on the board.
-
-    Args:
-        board: Current board state
-
-    Returns:
-        List of (row, col) tuples for empty cells
-    """
-    return [(i, j) for i in range(BOARD_SIZE)
-            for j in range(BOARD_SIZE) if board[i][j] == ' ']
-
-
-def make_move(board, row, col, player):
-    """Place a piece on the board.
-
-    Args:
-        board: Current board state (modified in place)
-        row: Row position (0-2)
-        col: Column position (0-2)
-        player: Player marker ('X' or 'O')
-
-    Returns:
-        True if move was successful
-    """
-    if 0 <= row < BOARD_SIZE and 0 <= col < BOARD_SIZE:
-        if board[row][col] == ' ':
-            board[row][col] = player
-            return True
-    return False
+# The following functions have been moved to rules.py for better separation of concerns
+# Kept for backward compatibility:
+# - check_winner, is_full, get_available_moves, make_move

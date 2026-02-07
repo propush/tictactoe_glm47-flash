@@ -1,57 +1,103 @@
-"""Score management and persistence for Tic-Tac-Toe game."""
+"""Score management and persistence for Tic-Tac-Toe game.
 
-import sys
+Implements dependency injection for score storage to enable testing.
+"""
+
 import json
-import os
+from abc import ABC, abstractmethod
 from .constants import SCORE_FILE
+
+
+class ScoreStorage(ABC):
+    """Abstract base class for score storage."""
+
+    @abstractmethod
+    def load(self):
+        """Load scores from storage.
+
+        Returns:
+            Dictionary with score data
+        """
+        pass
+
+    @abstractmethod
+    def save(self, data):
+        """Save scores to storage.
+
+        Args:
+            data: Dictionary with score data
+        """
+        pass
+
+
+class JsonFileScoreStorage(ScoreStorage):
+    """JSON file-based score storage."""
+
+    def __init__(self, file_path=None):
+        """Initialize with optional file path.
+
+        Args:
+            file_path: Path to JSON file, defaults to SCORE_FILE
+        """
+        self.file_path = file_path or SCORE_FILE
+
+    def load(self):
+        """Load scores from JSON file."""
+        import os
+        if os.path.exists(self.file_path):
+            try:
+                with open(self.file_path, 'r') as f:
+                    return json.load(f)
+            except (json.JSONDecodeError, IOError):
+                pass
+        return {
+            'player_wins': 0,
+            'computer_wins': 0,
+            'draws': 0,
+            'total_games': 0
+        }
+
+    def save(self, data):
+        """Save scores to JSON file."""
+        try:
+            with open(self.file_path, 'w') as f:
+                json.dump(data, f)
+        except IOError as e:
+            raise IOError(f"Could not save scores to file: {e}")
+
+
+class InMemoryScoreStorage(ScoreStorage):
+    """In-memory score storage for testing purposes."""
+
+    def __init__(self):
+        """Initialize with empty storage."""
+        self._data = {
+            'player_wins': 0,
+            'computer_wins': 0,
+            'draws': 0,
+            'total_games': 0
+        }
+
+    def load(self):
+        """Return current in-memory scores."""
+        return self._data.copy()
+
+    def save(self, data):
+        """Update in-memory scores."""
+        self._data.update(data)
 
 
 class ScoreTracker:
     """Track game scores across multiple sessions with persistent storage."""
 
-    def __init__(self, score_file=None):
-        """Initialize score tracker and load scores from file if available.
+    def __init__(self, storage=None):
+        """Initialize score tracker with optional storage.
 
         Args:
-            score_file: Optional path to score file. Defaults to 'tic_tac_toe_scores.json'
+            storage: ScoreStorage instance for dependency injection. Defaults to JsonFileScoreStorage.
         """
-        self.score_file = score_file or SCORE_FILE
-        self.player_wins = 0
-        self.computer_wins = 0
-        self.draws = 0
-        self.total_games = 0
-        self.load_scores()
-
-    def load_scores(self):
-        """Load scores from file if it exists."""
-        if os.path.exists(self.score_file):
-            try:
-                with open(self.score_file, 'r') as f:
-                    data = json.load(f)
-                    self.player_wins = data.get('player_wins', 0)
-                    self.computer_wins = data.get('computer_wins', 0)
-                    self.draws = data.get('draws', 0)
-                    self.total_games = data.get('total_games', 0)
-            except (json.JSONDecodeError, IOError):
-                # If file is corrupted or unreadable, start fresh
-                self.player_wins = 0
-                self.computer_wins = 0
-                self.draws = 0
-                self.total_games = 0
-
-    def save_scores(self):
-        """Save current scores to file."""
-        try:
-            data = {
-                'player_wins': self.player_wins,
-                'computer_wins': self.computer_wins,
-                'draws': self.draws,
-                'total_games': self.total_games
-            }
-            with open(self.score_file, 'w') as f:
-                json.dump(data, f)
-        except IOError as e:
-            print(f"Warning: Could not save scores to file: {e}")
+        self.storage = storage or JsonFileScoreStorage()
+        self._scores = self.storage.load()
 
     def record_win(self, player_won, is_draw):
         """Record a win/loss/draw result.
@@ -60,17 +106,38 @@ class ScoreTracker:
             player_won: True if player won
             is_draw: True if game ended in a draw
         """
-        self.total_games += 1
+        self._scores['total_games'] += 1
         if player_won:
-            self.player_wins += 1
+            self._scores['player_wins'] += 1
         elif is_draw:
-            self.draws += 1
+            self._scores['draws'] += 1
         else:
-            self.computer_wins += 1
-        self.save_scores()  # Auto-save after recording
+            self._scores['computer_wins'] += 1
+        self.storage.save(self._scores)
+
+    @property
+    def player_wins(self):
+        """Get player wins count."""
+        return self._scores['player_wins']
+
+    @property
+    def computer_wins(self):
+        """Get computer wins count."""
+        return self._scores['computer_wins']
+
+    @property
+    def draws(self):
+        """Get draws count."""
+        return self._scores['draws']
+
+    @property
+    def total_games(self):
+        """Get total games count."""
+        return self._scores['total_games']
 
     def display_scores(self):
         """Display current session statistics."""
+        import sys
         sys.stdout.write("\n" + "=" * 30 + "\n")
         sys.stdout.write("📊 SESSION STATISTICS\n")
         sys.stdout.write("=" * 30 + "\n")

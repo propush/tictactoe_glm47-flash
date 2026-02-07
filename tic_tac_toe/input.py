@@ -3,7 +3,8 @@
 import sys
 import time
 import curses
-from .board import move_cursor, BOARD_SIZE, PLAYER, COMPUTER, get_available_moves
+from .board import move_cursor, BOARD_SIZE, PLAYER, COMPUTER
+from .rules import TicTacToeRules
 from .constants import RESET, GREEN, RED, BOLD
 
 
