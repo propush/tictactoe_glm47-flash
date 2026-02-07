@@ -77,8 +77,7 @@ class TicTacToeGame:
         TicTacToeRules.make_move(self.game_state.board, row, col, PLAYER)
 
         # Check win/draw
-        player_won = TicTacToeRules.check_winner(self.game_state.board, PLAYER)
-        if player_won:
+        if TicTacToeRules.check_winner(self.game_state.board, PLAYER):
             return {'winner': 'player', 'reason': 'win'}
         if TicTacToeRules.is_full(self.game_state.board):
             return {'winner': None, 'reason': 'draw'}
@@ -92,8 +91,7 @@ class TicTacToeGame:
         if move is None:
             return None
 
-        computer_won = TicTacToeRules.check_winner(self.game_state.board, COMPUTER)
-        if computer_won:
+        if TicTacToeRules.check_winner(self.game_state.board, COMPUTER):
             return {'winner': 'computer', 'reason': 'win'}
         if TicTacToeRules.is_full(self.game_state.board):
             return {'winner': None, 'reason': 'draw'}
@@ -116,6 +114,7 @@ class TicTacToeGame:
 
         if result['game_over']:
             self.game_state.game_over_reason = result['reason']
+            self.game_state.winner = result['winner']
             return result
 
         return None
@@ -127,9 +126,12 @@ class TicTacToeGame:
 
     def display_result(self):
         """Display the game result."""
-        display_result(self.game_state.game_over_reason == 'draw',
-                      self.game_state.game_over_reason == 'win' and
-                      self.game_state.game_over_reason == 'player')
+        if self.game_state.game_over_reason == 'draw':
+            display_result(is_draw=True, player_won=False)
+        elif self.game_state.winner == 'player':
+            display_result(is_draw=False, player_won=True)
+        else:
+            display_result(is_draw=False, player_won=False)
 
 
 def play_game():

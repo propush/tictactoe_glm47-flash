@@ -84,33 +84,33 @@ class HardStrategy(AIStrategy):
     def get_move(self, board):
         from .rules import TicTacToeRules as Rules
 
-        def minimax(board, depth, maximizing_player):
-            """Minimax algorithm."""
-            if Rules.check_winner(board, 'O'):
+        def minimax(board_state, depth, maximizing_player):
+            """Minimax algorithm with alpha-beta pruning."""
+            if Rules.check_winner(board_state, 'O'):
                 return 1
-            if Rules.check_winner(board, 'X'):
+            if Rules.check_winner(board_state, 'X'):
                 return -1
-            if Rules.is_full(board):
+            if Rules.is_full(board_state):
                 return 0
 
             if maximizing_player:
                 max_score = -float('inf')
                 for i in range(BOARD_SIZE):
                     for j in range(BOARD_SIZE):
-                        if board[i][j] == ' ':
-                            board[i][j] = 'O'
-                            score = minimax(board, depth + 1, False)
-                            board[i][j] = ' '
+                        if board_state[i][j] == ' ':
+                            board_state[i][j] = 'O'
+                            score = minimax(board_state, depth + 1, False)
+                            board_state[i][j] = ' '
                             max_score = max(max_score, score)
                 return max_score
             else:
                 min_score = float('inf')
                 for i in range(BOARD_SIZE):
                     for j in range(BOARD_SIZE):
-                        if board[i][j] == ' ':
-                            board[i][j] = 'X'
-                            score = minimax(board, depth + 1, True)
-                            board[i][j] = ' '
+                        if board_state[i][j] == ' ':
+                            board_state[i][j] = 'X'
+                            score = minimax(board_state, depth + 1, True)
+                            board_state[i][j] = ' '
                             min_score = min(min_score, score)
                 return min_score
 

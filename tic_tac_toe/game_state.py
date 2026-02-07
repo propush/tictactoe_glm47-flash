@@ -16,6 +16,7 @@ class GameState:
         self.current_player = PLAYER
         self.is_active = True
         self.game_over_reason = None
+        self.winner = None
 
     def reset(self):
         """Reset the game to initial state."""
@@ -23,6 +24,8 @@ class GameState:
         self.current_player = PLAYER
         self.is_active = True
         self.game_over_reason = None
+        self.winner = None
+        self.winner = None
 
     def switch_player(self):
         """Switch to the other player."""
