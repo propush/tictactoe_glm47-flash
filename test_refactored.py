@@ -9,10 +9,10 @@ import tempfile
 try:
     from tic_tac_toe.constants import SCORE_FILE, Difficulty, PLAYER, COMPUTER
     from tic_tac_toe.score_tracker import ScoreTracker
-    from tic_tac_toe.board import print_board, check_winner, is_full, get_available_moves
-    from tic_tac_toe.ai import computer_move, get_difficulty_choice
-    from tic_tac_toe.input import get_player_move
-    from tic_tac_toe.ui import display_menu, display_result, display_scores
+    from tic_tac_toe.board import print_board
+    from tic_tac_toe.rules import TicTacToeRules
+    from tic_tac_toe.ai_strategy import AIStrategyFactory, AIStrategy
+    from tic_tac_toe.game_coordinator import TicTacToeGame
     print("✓ All imports successful")
 except ImportError as e:
     print(f"✗ Import failed: {e}")
@@ -34,29 +34,55 @@ print("✓ Board display works")
 
 # Test win detection
 board[0] = ['X', 'X', 'X']
-assert check_winner(board, 'X')
+assert TicTacToeRules.check_winner(board, 'X')
 print("✓ Win detection works")
 
 # Test full board
 board = [['X', 'O', 'X'],
          ['O', 'X', 'O'],
          ['O', 'X', 'X']]
-assert is_full(board)
+assert TicTacToeRules.is_full(board)
 print("✓ Full board detection works")
 
 # Test available moves
 board = [['X', ' ', 'O'],
          [' ', 'X', 'O'],
          ['O', ' ', ' ']]
-moves = get_available_moves(board)
+moves = TicTacToeRules.get_available_moves(board)
 assert len(moves) == 4
 print("✓ Available moves function works")
 
-# Test score tracker
-with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.json') as f:
-    temp_file = f.name
+# Test AI strategy factory
+try:
+    strategy = AIStrategyFactory.create(Difficulty.EASY)
+    assert isinstance(strategy, AIStrategy)
+    print("✓ AI Strategy Factory works")
 
-tracker = ScoreTracker(score_file=temp_file)
+    # Test easy AI move
+    board = [[' ' for _ in range(3)] for _ in range(3)]
+    move = strategy.get_move(board)
+    assert move in TicTacToeRules.get_available_moves(board)
+    print("✓ Easy AI strategy works")
+
+    # Test medium AI move
+    strategy = AIStrategyFactory.create(Difficulty.MEDIUM)
+    move = strategy.get_move(board)
+    assert move in TicTacToeRules.get_available_moves(board)
+    print("✓ Medium AI strategy works")
+
+    # Test hard AI move
+    strategy = AIStrategyFactory.create(Difficulty.HARD)
+    move = strategy.get_move(board)
+    assert move in TicTacToeRules.get_available_moves(board)
+    print("✓ Hard AI strategy works")
+except Exception as e:
+    print(f"✗ AI Strategy tests failed: {e}")
+    sys.exit(1)
+
+# Test score tracker
+from tic_tac_toe.score_tracker import InMemoryScoreStorage
+
+tracker = ScoreTracker(storage=InMemoryScoreStorage())
 assert tracker.player_wins == 0
 assert tracker.computer_wins == 0
 assert tracker.draws == 0
@@ -68,8 +94,18 @@ assert tracker.computer_wins == 1
 tracker.record_win(None, True)
 assert tracker.draws == 1
 assert tracker.total_games == 3
-os.unlink(temp_file)
 print("✓ Score tracker works")
+
+# Test game coordinator
+try:
+    from tic_tac_toe.score_tracker import InMemoryScoreStorage
+
+    game = TicTacToeGame(score_tracker=ScoreTracker(storage=InMemoryScoreStorage()))
+    assert game.score_tracker is not None
+    print("✓ Game Coordinator can be instantiated")
+except Exception as e:
+    print(f"✗ Game Coordinator test failed: {e}")
+    sys.exit(1)
 
 print("\n" + "="*50)
 print("All tests passed! ✓")
