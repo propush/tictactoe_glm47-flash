@@ -9,6 +9,7 @@ from .constants import (
     YELLOW,
     BOLD,
     DIM,
+    REVERSE,
     GRID_H,
     GRID_V,
 )
@@ -55,7 +56,7 @@ def print_board(board, cursor_row=None, cursor_col=None, last_move=None, winning
             styled = display
 
             if (i, j) in win_set:
-                styled = f"{BOLD}{GREEN}{display}{RESET}"
+                styled = f"{BOLD}{REVERSE}{GREEN}{display}{RESET}"
             elif cursor_row is not None and i == cursor_row and j == cursor_col:
                 styled = f"{BOLD}{YELLOW}{display}{RESET}"
             elif last_move is not None and (i, j) == last_move:

@@ -112,6 +112,9 @@ def play_game():
             if result and result.get('reason') in ('win', 'draw'):
                 break
 
+        # Show final board state (including winning line) before result.
+        game.display_board()
+
         # Record and display result
         game_result = result['result']
         score_tracker.record_result(game_result)
