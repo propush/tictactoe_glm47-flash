@@ -56,11 +56,11 @@ The codebase is organized into focused, independent modules in the `tic_tac_toe/
 - **`game_coordinator.py`**: Orchestrates game flow and coordinates between layers
 
 **Supporting Modules**
-- **`constants.py`**: All configuration and constants (board size, player markers, colors, paths)
+- **`constants.py`**: All configuration and constants (board size, player markers, colors, paths, Difficulty, GameResult)
 - **`score_tracker.py`**: ScoreTracker class manages statistics with JSON persistence
 - **`board.py`**: Board operations and utilities
 - **`input.py`**: Player input handling (curses-based arrow keys and fallback)
-- **`ui.py`**: Terminal display functions and user interface
+- **`ui.py`**: Terminal display functions, user interface, and difficulty input
 
 **Top-level Scripts**
 - **`run_game.py`**: Convenience entry point
@@ -76,7 +76,11 @@ The codebase is organized into focused, independent modules in the `tic_tac_toe/
 - **`RandomMoveStrategy`**: Easy AI: completely random valid moves
 - **`MediumStrategy`**: Medium AI: priority-based strategy (win/block/center/corner/side)
 - **`HardStrategy`**: Hard AI: Minimax algorithm with alpha-beta pruning
-- **`AIStrategyFactory`**: Factory for creating strategy instances
+- **`AIStrategyFactory`**: Factory for creating strategy instances using Difficulty constants
+
+**Constants**
+- **`Difficulty`**: Difficulty level constants (EASY, MEDIUM, HARD)
+- **`GameResult`**: Game outcome constants (PLAYER_WIN, COMPUTER_WIN, DRAW)
 
 **Game Coordinator**
 - **`TicTacToeGame`**: Main game class coordinating game flow and layer interactions
@@ -94,13 +98,6 @@ The codebase is organized into focused, independent modules in the `tic_tac_toe/
 - `get_random_move(board)`: Returns random valid cell for Easy AI
 - `get_available_moves(board)`: Returns list of empty cells
 - `make_move(board, row, col, player)`: Places piece on board
-
-**AI Opponents**
-- `computer_move_easy(board)`: Random valid moves
-- `computer_move_medium(board)`: Win/block/center/corner/side priority
-- `computer_move_hard(board)`: Minimax algorithm
-- `computer_move(board, difficulty)`: Dispatcher based on difficulty level
-- `get_difficulty_choice()`: Interactive difficulty selection menu
 
 **Minimax Algorithm**
 - `minimax(board, depth, maximizing_player)`: Recursive search algorithm for Hard AI
@@ -122,8 +119,9 @@ The codebase is organized into focused, independent modules in the `tic_tac_toe/
   - Play-again logic
 - `get_player_move(board)`: Tries curses arrow keys first, falls back to number input
 - `display_menu()`: Shows game introduction and controls
-- `display_result(player_won, is_draw)`: Displays game outcome
+- `display_result(result)`: Displays game outcome using GameResult
 - `display_scores(score_tracker)`: Shows session statistics
+- `get_difficulty_input()`: Interactive difficulty selection menu (in ui.py)
 - `display_play_again_prompt()`: Asks user to play again
 
 ## Key Implementation Details
@@ -170,10 +168,11 @@ The codebase is organized into focused, independent modules in the `tic_tac_toe/
 - `TicTacToeRules`: Contains all game logic only
 - `TicTacToeGame`: Coordinates game flow only
 - `AIStrategy`: Abstract behavior, concrete implementations handle specific strategies
+- `ScoreTracker`: Tracks scores only (display handled by ui.py)
 
 **Composition Over Inheritance**
 - AI strategies composed using abstract base class
-- Factory creates strategy instances based on difficulty
+- Factory creates strategy instances based on Difficulty constants
 - No rigid inheritance hierarchies
 
 **KISS (Keep It Simple)**
@@ -185,6 +184,8 @@ The codebase is organized into focused, independent modules in the `tic_tac_toe/
 - Clear boundaries between layers
 - Each layer depends only on layers below it
 - No circular dependencies between modules
+- UI input (get_difficulty_input) lives in ui.py, not in factory
+- AI strategies work on board copies, never mutate the game board
 
 ### Terminal UI
 - Uses `curses` library for arrow key navigation and cursor highlighting
@@ -212,6 +213,7 @@ The codebase is organized into focused, independent modules in the `tic_tac_toe/
 - **Easy**: RandomMoveStrategy makes completely random valid moves
 - **Medium**: MediumStrategy uses priority-based strategy (win > block > center > corner > side)
 - **Hard**: HardStrategy uses Minimax algorithm with alpha-beta pruning for perfect play
+- AI strategies use `copy.deepcopy(board)` to avoid mutating the game board
 - Minimax returns: 1 (win), -1 (loss), 0 (draw)
 - Implementation includes alpha-beta pruning optimization
 
@@ -219,11 +221,18 @@ The codebase is organized into focused, independent modules in the `tic_tac_toe/
 
 **Factory Pattern (AIStrategyFactory)**
 ```python
-# Create strategy based on difficulty
-strategy = AIStrategyFactory.create(difficulty)
+# Create strategy based on Difficulty constant
+strategy = AIStrategyFactory.create(Difficulty.HARD)
 move = strategy.get_move(board)
 ```
 
+**GameResult Enum**
+```python
+# Clear game outcomes instead of ambiguous booleans
+score_tracker.record_result(GameResult.PLAYER_WIN)
+display_result(GameResult.DRAW)
+```
+
 **Abstract Base Class (AIStrategy)**
 ```python
 # Base class for AI strategies
@@ -249,40 +258,9 @@ class TicTacToeGame:
 - Each layer can be tested independently
 - GameState can be tested with mocked dependencies
 - Rules can be tested with board state alone
-- Strategies can be tested with board states
+- Strategies can be tested with board states (they don't mutate the board)
 - Mock dependencies allow isolation of each component
-
-### Backward Compatibility
-- No legacy entry points are maintained.
-- New code should use `tic_tac_toe/game_coordinator.py` or `run_game.py`.
-
-**Abstract Base Class (AIStrategy)**
-```python
-# Base class for AI strategies
-class AIStrategy(ABC):
-    @abstractmethod
-    def get_move(self, board):
-        pass
-```
-
-**Dependency Injection**
-```python
-# Game coordinator accepts score tracker as dependency
-class TicTacToeGame:
-    def __init__(self, score_tracker):
-        self.score_tracker = score_tracker
-```
-
-**Static Methods for Pure Logic**
-- `TicTacToeRules` methods are static to ensure stateless, pure functions
-- Easy to test and reuse across different contexts
-
-### Testing Strategy
-- Each layer can be tested independently
-- GameState can be tested with mocked dependencies
-- Rules can be tested with board state alone
-- Strategies can be tested with board states
-- Mock dependencies allow isolation of each component
+- `InMemoryScoreStorage` provided for testing score tracking
 
 ### Backward Compatibility
 - No legacy entry points are maintained.

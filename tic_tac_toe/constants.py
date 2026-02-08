@@ -11,6 +11,13 @@ class Difficulty:
     HARD = "hard"
 
 
+class GameResult:
+    """Possible game outcomes."""
+    PLAYER_WIN = "player_win"
+    COMPUTER_WIN = "computer_win"
+    DRAW = "draw"
+
+
 # ANSI Color Codes
 RESET = "\033[0m"
 GREEN = "\033[32m"

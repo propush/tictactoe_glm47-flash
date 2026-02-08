@@ -3,8 +3,11 @@
 Uses composition to combine different AI strategies.
 """
 
+import copy
 from abc import ABC, abstractmethod
-from .constants import BOARD_SIZE, PLAYER, COMPUTER
+from .constants import BOARD_SIZE, PLAYER, COMPUTER, Difficulty
+from .rules import TicTacToeRules
+from .board import get_random_move
 
 
 class AIStrategy(ABC):
@@ -26,7 +29,6 @@ class RandomMoveStrategy(AIStrategy):
     """Easy AI: Makes completely random valid moves."""
 
     def get_move(self, board):
-        from .board import get_random_move
         return get_random_move(board)
 
 
@@ -34,14 +36,10 @@ class MediumStrategy(AIStrategy):
     """Medium AI: Basic strategy (win/block/center/corner/side)."""
 
     def get_move(self, board):
-        from .rules import TicTacToeRules as Rules
-        from .board import get_random_move
-
         def is_winning_move(row, col, marker):
-            board[row][col] = marker
-            won = Rules.check_winner(board, marker)
-            board[row][col] = ' '
-            return won
+            test_board = copy.deepcopy(board)
+            test_board[row][col] = marker
+            return TicTacToeRules.check_winner(test_board, marker)
 
         # Try to win
         for i in range(BOARD_SIZE):
@@ -82,15 +80,15 @@ class HardStrategy(AIStrategy):
     """Hard AI: Minimax algorithm for perfect play."""
 
     def get_move(self, board):
-        from .rules import TicTacToeRules as Rules
+        work_board = copy.deepcopy(board)
 
         def minimax(board_state, maximizing_player, alpha, beta):
             """Minimax algorithm with alpha-beta pruning."""
-            if Rules.check_winner(board_state, COMPUTER):
+            if TicTacToeRules.check_winner(board_state, COMPUTER):
                 return 1
-            if Rules.check_winner(board_state, PLAYER):
+            if TicTacToeRules.check_winner(board_state, PLAYER):
                 return -1
-            if Rules.is_full(board_state):
+            if TicTacToeRules.is_full(board_state):
                 return 0
 
             if maximizing_player:
@@ -125,10 +123,10 @@ class HardStrategy(AIStrategy):
 
         for i in range(BOARD_SIZE):
             for j in range(BOARD_SIZE):
-                if board[i][j] == ' ':
-                    board[i][j] = COMPUTER
-                    score = minimax(board, False, -float('inf'), float('inf'))
-                    board[i][j] = ' '
+                if work_board[i][j] == ' ':
+                    work_board[i][j] = COMPUTER
+                    score = minimax(work_board, False, -float('inf'), float('inf'))
+                    work_board[i][j] = ' '
                     if score > best_score:
                         best_score = score
                         best_move = (i, j)
@@ -140,12 +138,9 @@ class AIStrategyFactory:
     """Factory for creating AI strategy instances."""
 
     _strategies = {
-        'easy': RandomMoveStrategy,
-        '1': RandomMoveStrategy,
-        'medium': MediumStrategy,
-        '2': MediumStrategy,
-        'hard': HardStrategy,
-        '3': HardStrategy,
+        Difficulty.EASY: RandomMoveStrategy,
+        Difficulty.MEDIUM: MediumStrategy,
+        Difficulty.HARD: HardStrategy,
     }
 
     @classmethod
@@ -153,38 +148,10 @@ class AIStrategyFactory:
         """Create strategy instance from difficulty.
 
         Args:
-            difficulty: Difficulty level ('easy', 'medium', 'hard') or number (1-3)
+            difficulty: Difficulty level (Difficulty.EASY, MEDIUM, or HARD)
 
         Returns:
             AIStrategy instance
         """
-        difficulty = difficulty.lower()
-        strategy_class = cls._strategies.get(difficulty)
-
-        if strategy_class is None:
-            # Default to easy if invalid
-            strategy_class = RandomMoveStrategy
-
+        strategy_class = cls._strategies.get(difficulty, RandomMoveStrategy)
         return strategy_class()
-
-    @staticmethod
-    def get_difficulty_input():
-        """Get difficulty level from user input.
-
-        Returns:
-            Difficulty string ('easy', 'medium', or 'hard')
-        """
-        while True:
-            choice = input("\nSelect difficulty:\n"
-                           "1 - Easy (random moves)\n"
-                           "2 - Medium (basic strategy)\n"
-                           "3 - Hard (perfect play)\n"
-                           "Enter your choice (1-3): ").lower()
-            if choice == '1':
-                return 'easy'
-            elif choice == '2':
-                return 'medium'
-            elif choice == '3':
-                return 'hard'
-            else:
-                print("Invalid choice. Please enter 1, 2, or 3.")

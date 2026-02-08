@@ -1,7 +1,7 @@
 """Terminal UI functions for Tic-Tac-Toe game."""
 
 import sys
-from .constants import RESET, GREEN, RED, BOLD, PLAYER, COMPUTER
+from .constants import RESET, GREEN, RED, BOLD, PLAYER, COMPUTER, Difficulty, GameResult
 
 
 def display_menu():
@@ -35,17 +35,16 @@ def display_instructions():
     print("=" * 30 + "\n")
 
 
-def display_result(player_won, is_draw):
+def display_result(result):
     """Display game result.
 
     Args:
-        player_won: True if player won
-        is_draw: True if game ended in a draw
+        result: GameResult value (PLAYER_WIN, COMPUTER_WIN, or DRAW)
     """
     print("\n" + "=" * 30)
-    if is_draw:
+    if result == GameResult.DRAW:
         print("It's a draw!")
-    elif player_won:
+    elif result == GameResult.PLAYER_WIN:
         print("🎉 Congratulations! You win!")
     else:
         print("😔 Computer wins!")
@@ -53,12 +52,42 @@ def display_result(player_won, is_draw):
 
 
 def display_scores(score_tracker):
-    """Display current scores.
+    """Display current session statistics.
 
     Args:
         score_tracker: ScoreTracker instance
     """
-    score_tracker.display_scores()
+    sys.stdout.write("\n" + "=" * 30 + "\n")
+    sys.stdout.write("📊 SESSION STATISTICS\n")
+    sys.stdout.write("=" * 30 + "\n")
+    sys.stdout.write(f"Player wins:      {score_tracker.player_wins}\n")
+    sys.stdout.write(f"Computer wins:    {score_tracker.computer_wins}\n")
+    sys.stdout.write(f"Draws:            {score_tracker.draws}\n")
+    sys.stdout.write(f"Total games:      {score_tracker.total_games}\n")
+    sys.stdout.write("=" * 30 + "\n")
+    sys.stdout.flush()
+
+
+def get_difficulty_input():
+    """Get difficulty level from user input.
+
+    Returns:
+        Difficulty constant (Difficulty.EASY, MEDIUM, or HARD)
+    """
+    choices = {
+        '1': Difficulty.EASY,
+        '2': Difficulty.MEDIUM,
+        '3': Difficulty.HARD,
+    }
+    while True:
+        choice = input("\nSelect difficulty:\n"
+                       "1 - Easy (random moves)\n"
+                       "2 - Medium (basic strategy)\n"
+                       "3 - Hard (perfect play)\n"
+                       "Enter your choice (1-3): ").strip()
+        if choice in choices:
+            return choices[choice]
+        print("Invalid choice. Please enter 1, 2, or 3.")
 
 
 def display_play_again_prompt():

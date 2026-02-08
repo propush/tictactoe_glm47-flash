@@ -5,7 +5,7 @@ Implements dependency injection for score storage to enable testing.
 
 import json
 from abc import ABC, abstractmethod
-from .constants import SCORE_FILE
+from .constants import SCORE_FILE, GameResult
 
 
 class ScoreStorage(ABC):
@@ -99,21 +99,35 @@ class ScoreTracker:
         self.storage = storage or JsonFileScoreStorage()
         self._scores = self.storage.load()
 
-    def record_win(self, player_won, is_draw):
-        """Record a win/loss/draw result.
+    def record_result(self, result):
+        """Record a game result.
 
         Args:
-            player_won: True if player won
-            is_draw: True if game ended in a draw
+            result: GameResult value (PLAYER_WIN, COMPUTER_WIN, or DRAW)
         """
         self._scores['total_games'] += 1
-        if player_won:
+        if result == GameResult.PLAYER_WIN:
             self._scores['player_wins'] += 1
-        elif is_draw:
-            self._scores['draws'] += 1
-        else:
+        elif result == GameResult.COMPUTER_WIN:
             self._scores['computer_wins'] += 1
+        elif result == GameResult.DRAW:
+            self._scores['draws'] += 1
         self.storage.save(self._scores)
+
+    def record_win(self, player_won, draw):
+        """Backward-compatible API for older callers.
+
+        Args:
+            player_won: True if player won, False if computer won, None when draw is used
+            draw: True if game is a draw
+        """
+        if draw:
+            result = GameResult.DRAW
+        elif player_won is True:
+            result = GameResult.PLAYER_WIN
+        else:
+            result = GameResult.COMPUTER_WIN
+        self.record_result(result)
 
     @property
     def player_wins(self):
@@ -134,16 +148,3 @@ class ScoreTracker:
     def total_games(self):
         """Get total games count."""
         return self._scores['total_games']
-
-    def display_scores(self):
-        """Display current session statistics."""
-        import sys
-        sys.stdout.write("\n" + "=" * 30 + "\n")
-        sys.stdout.write("📊 SESSION STATISTICS\n")
-        sys.stdout.write("=" * 30 + "\n")
-        sys.stdout.write(f"Player wins:      {self.player_wins}\n")
-        sys.stdout.write(f"Computer wins:    {self.computer_wins}\n")
-        sys.stdout.write(f"Draws:            {self.draws}\n")
-        sys.stdout.write(f"Total games:      {self.total_games}\n")
-        sys.stdout.write("=" * 30 + "\n")
-        sys.stdout.flush()

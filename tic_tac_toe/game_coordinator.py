@@ -8,9 +8,12 @@ import sys
 from .game_state import GameState
 from .rules import TicTacToeRules
 from .ai_strategy import AIStrategyFactory
-from .ui import display_menu, display_result, display_scores, display_play_again_prompt
+from .input import get_player_move
+from .board import print_board
+from .ui import (display_menu, display_result, display_scores,
+                 display_play_again_prompt, get_difficulty_input)
 from .score_tracker import ScoreTracker
-from .constants import PLAYER, COMPUTER
+from .constants import PLAYER, COMPUTER, GameResult
 
 
 class TicTacToeGame:
@@ -34,105 +37,45 @@ class TicTacToeGame:
         """Set AI difficulty.
 
         Args:
-            difficulty: Difficulty level ('easy', 'medium', 'hard') or number (1-3)
+            difficulty: Difficulty constant (Difficulty.EASY, MEDIUM, or HARD)
         """
         self.current_strategy = AIStrategyFactory.create(difficulty)
 
-    def get_player_move(self):
-        """Get player move from input.
-
-        Returns:
-            Tuple of (row, col) or None if cancelled
-        """
-        from .input import get_player_move
-        return get_player_move(self.game_state.board)
-
-    def get_computer_move(self):
-        """Get computer move from AI.
-
-        Returns:
-            Tuple of (row, col) or None if no moves available
-        """
-        if self.current_strategy:
-            return self.current_strategy.get_move(self.game_state.board)
-        return None
-
     def play_turn(self):
-        """Play one turn of the game."""
-        if self.game_state.is_player_turn():
-            return self._player_turn()
-        else:
-            return self._computer_turn()
-
-    def _player_turn(self):
-        """Handle player's turn."""
-        move = self.get_player_move()
-        if move is None:
-            return None
-
-        row, col = move
-        if not TicTacToeRules.make_move(self.game_state.board, row, col, PLAYER):
-            return None
-
-        # Check win/draw
-        if TicTacToeRules.check_winner(self.game_state.board, PLAYER):
-            return {'winner': 'player', 'reason': 'win'}
-        if TicTacToeRules.is_full(self.game_state.board):
-            return {'winner': None, 'reason': 'draw'}
-
-        self.game_state.switch_player()
-        return {'winner': None, 'reason': 'continue'}
-
-    def _computer_turn(self):
-        """Handle computer's turn."""
-        move = self.get_computer_move()
-        if move is None:
-            return None
-        row, col = move
-        if not TicTacToeRules.make_move(self.game_state.board, row, col, COMPUTER):
-            return None
-
-        if TicTacToeRules.check_winner(self.game_state.board, COMPUTER):
-            return {'winner': 'computer', 'reason': 'win'}
-        if TicTacToeRules.is_full(self.game_state.board):
-            return {'winner': None, 'reason': 'draw'}
-
-        self.game_state.switch_player()
-        return {'winner': None, 'reason': 'continue'}
-
-    def check_game_over(self):
-        """Check if the game has ended.
+        """Play one turn of the game.
 
         Returns:
-            Result dictionary or None if game continues
+            Legacy result dictionary with `reason` key, or None if move cancelled.
         """
-        player_won = TicTacToeRules.check_winner(self.game_state.board, PLAYER)
-        computer_won = TicTacToeRules.check_winner(self.game_state.board, COMPUTER)
+        if self.game_state.is_player_turn():
+            move = get_player_move(self.game_state.board)
+            marker = PLAYER
+        else:
+            move = self.current_strategy.get_move(self.game_state.board) if self.current_strategy else None
+            marker = COMPUTER
 
-        result = TicTacToeRules.check_game_over(
-            self.game_state.board, player_won, computer_won
-        )
+        if move is None:
+            return None
 
-        if result['game_over']:
-            self.game_state.game_over_reason = result['reason']
-            self.game_state.winner = result['winner']
-            return result
+        row, col = move
+        if not TicTacToeRules.make_move(self.game_state.board, row, col, marker):
+            return None
 
-        return None
+        if TicTacToeRules.check_winner(self.game_state.board, marker):
+            result = GameResult.PLAYER_WIN if marker == PLAYER else GameResult.COMPUTER_WIN
+            self.game_state.winner = 'player' if marker == PLAYER else 'computer'
+            self.game_state.game_over_reason = 'win'
+            return {'reason': 'win', 'result': result}
+        if TicTacToeRules.is_full(self.game_state.board):
+            self.game_state.game_over_reason = 'draw'
+            return {'reason': 'draw', 'result': GameResult.DRAW}
+
+        self.game_state.switch_player()
+        return {'reason': 'continue', 'result': None}
 
     def display_board(self):
         """Display the current board state."""
-        from .board import print_board
         print_board(self.game_state.board)
-
-    def display_result(self):
-        """Display the game result."""
-        if self.game_state.game_over_reason == 'draw':
-            display_result(is_draw=True, player_won=False)
-        elif self.game_state.winner == 'player':
-            display_result(is_draw=False, player_won=True)
-        else:
-            display_result(is_draw=False, player_won=False)
 
 
 def play_game():
@@ -146,7 +89,7 @@ def play_game():
         display_menu()
 
         # Difficulty selection
-        difficulty = AIStrategyFactory.get_difficulty_input()
+        difficulty = get_difficulty_input()
 
         # Create and initialize game
         game = TicTacToeGame(score_tracker)
@@ -154,30 +97,17 @@ def play_game():
         game.start_new_game()
 
         # Play the game
+        result = None
         while True:
             game.display_board()
-
             result = game.play_turn()
-            if result is None:
-                continue  # Cancelled move
-
-            if result['reason'] in ('win', 'draw'):
+            if result and result.get('reason') in ('win', 'draw'):
                 break
 
-        # Check if game is actually over
-        game_result = game.check_game_over()
-        if not game_result:
-            continue
-
-        # Record result
-        player_won = game_result['winner'] == 'player'
-        is_draw = game_result['reason'] == 'draw'
-        score_tracker.record_win(player_won, is_draw)
-
-        # Display result
-        game.display_result()
-
-        # Show stats before play again
+        # Record and display result
+        game_result = result['result']
+        score_tracker.record_result(game_result)
+        display_result(game_result)
         display_scores(score_tracker)
 
         # Play again?

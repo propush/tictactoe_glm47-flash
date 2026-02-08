@@ -9,6 +9,7 @@ from .game_state import GameState
 from .rules import TicTacToeRules
 from .ai_strategy import AIStrategyFactory
 from .score_tracker import ScoreTracker
+from .constants import GameResult, Difficulty
 
 __all__ = [
     'play_game',
@@ -17,4 +18,6 @@ __all__ = [
     'TicTacToeRules',
     'AIStrategyFactory',
     'ScoreTracker',
+    'GameResult',
+    'Difficulty',
 ]
