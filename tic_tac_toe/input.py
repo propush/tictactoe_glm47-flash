@@ -1,11 +1,9 @@
 """Player input handling for Tic-Tac-Toe game."""
 
-import sys
 import time
 import curses
-from .board import move_cursor, BOARD_SIZE, PLAYER, COMPUTER
-from .rules import TicTacToeRules
-from .constants import RESET, GREEN, RED, BOLD
+from .board import move_cursor
+from .constants import BOARD_SIZE, PLAYER
 
 
 def get_arrow_move(stdscr, board):
@@ -40,35 +38,43 @@ def get_arrow_move(stdscr, board):
         stdscr.clear()
         stdscr.refresh()
 
-        # Display board with cursor
-        board_display = [[board[i][j] for j in range(BOARD_SIZE)] for i in range(BOARD_SIZE)]
-        board_display[cursor_row][cursor_col] = PLAYER
-
-        for i, row in enumerate(board_display):
-            row_str = " | ".join(row)
-            if i == cursor_row and cursor_row < BOARD_SIZE:
-                # Highlight cursor row with colors
-                stdscr.addstr(3 + i, 0, row_str, curses.color_pair(2) | curses.A_BOLD)
-            else:
-                stdscr.addstr(3 + i, 0, row_str, curses.color_pair(1))
+        # Display board with cursor highlight (no mutation)
+        board_top = 3
+        row_step = 2
+        for i in range(BOARD_SIZE):
+            row_y = board_top + i * row_step
+            col = 0
+            for j in range(BOARD_SIZE):
+                is_cursor = i == cursor_row and j == cursor_col
+                # Show a visible move preview at the cursor on empty cells.
+                if is_cursor and board[i][j] == ' ':
+                    cell = PLAYER
+                else:
+                    cell = board[i][j]
+                attr = curses.color_pair(2) | curses.A_BOLD if is_cursor else curses.color_pair(1)
+                stdscr.addstr(row_y, col, cell, attr)
+                if j < BOARD_SIZE - 1:
+                    stdscr.addstr(row_y, col + 1, " | ", curses.color_pair(1))
+                col += 4
             if i < BOARD_SIZE - 1:
-                stdscr.addstr(4 + i, 0, "-" * 9, curses.color_pair(1))
+                stdscr.addstr(row_y + 1, 0, "-" * 9, curses.color_pair(1))
 
         # Display instructions
+        instructions_y = board_top + BOARD_SIZE * row_step
         cursor_pos = f"Cursor at: {cursor_row * BOARD_SIZE + cursor_col + 1}"
-        if cursor_row < BOARD_SIZE:
-            stdscr.addstr(7, 0, cursor_pos, curses.color_pair(2) | curses.A_BOLD)
-            stdscr.addstr(7, len(cursor_pos),
-                         "(Use arrow keys to move, Enter to place X)",
-                         curses.color_pair(2) | curses.A_BOLD)
-        else:
-            stdscr.addstr(7, 0, cursor_pos, curses.color_pair(1))
-            stdscr.addstr(7, len(cursor_pos),
-                         "(Use arrow keys to move, Enter to place X)",
-                         curses.color_pair(1))
-
-        stdscr.addstr(8, 0, "Press Ctrl+C to cancel or 'q' to quit",
-                     curses.color_pair(1))
+        stdscr.addstr(instructions_y, 0, cursor_pos, curses.color_pair(2) | curses.A_BOLD)
+        stdscr.addstr(
+            instructions_y,
+            len(cursor_pos),
+            " (Use arrow keys to move, Enter to place X)",
+            curses.color_pair(2) | curses.A_BOLD,
+        )
+        stdscr.addstr(
+            instructions_y + 1,
+            0,
+            "Press Ctrl+C to cancel or 'q' to quit",
+            curses.color_pair(1),
+        )
         stdscr.refresh()
 
         # Get input
@@ -90,7 +96,13 @@ def get_arrow_move(stdscr, board):
                     return cursor_row, cursor_col
                 else:
                     # Show error message
-                    stdscr.addstr(7, 0, "Cell already occupied! ", curses.color_pair(3) | curses.A_BOLD)
+                    error_y = instructions_y + 2
+                    stdscr.addstr(
+                        error_y,
+                        0,
+                        "Cell already occupied! ",
+                        curses.color_pair(3) | curses.A_BOLD,
+                    )
                     stdscr.refresh()
                     time.sleep(1)
             # Handle quit command

@@ -75,6 +75,16 @@ try:
     move = strategy.get_move(board)
     assert move in TicTacToeRules.get_available_moves(board)
     print("✓ Hard AI strategy works")
+
+    # Ensure strategies do not mutate the board
+    board = [[' ' for _ in range(3)] for _ in range(3)]
+    board[0][0] = 'X'
+    snapshot = [row[:] for row in board]
+    for difficulty in (Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD):
+        strategy = AIStrategyFactory.create(difficulty)
+        strategy.get_move(board)
+        assert board == snapshot
+    print("✓ AI strategies do not mutate board state")
 except Exception as e:
     print(f"✗ AI Strategy tests failed: {e}")
     sys.exit(1)
@@ -106,6 +116,52 @@ try:
 except Exception as e:
     print(f"✗ Game Coordinator test failed: {e}")
     sys.exit(1)
+
+# Test game loop ends immediately on computer win/draw
+class FixedMoveStrategy:
+    def __init__(self, move):
+        self._move = move
+
+    def get_move(self, board):
+        return self._move
+
+
+def assert_computer_turn_ends(board, move, expected_reason):
+    game = TicTacToeGame(score_tracker=ScoreTracker(storage=InMemoryScoreStorage()))
+    game.game_state.board = [row[:] for row in board]
+    game.game_state.current_player = COMPUTER
+    game.current_strategy = FixedMoveStrategy(move)
+
+    turns = 0
+    while True:
+        result = game.play_turn()
+        turns += 1
+        if result and result['reason'] in ('win', 'draw'):
+            assert result['reason'] == expected_reason
+            break
+        if turns > 1:
+            raise AssertionError("Game did not end immediately after computer turn")
+
+    assert turns == 1
+
+
+# Computer win
+board = [
+    ['O', 'O', ' '],
+    ['X', 'X', ' '],
+    [' ', ' ', ' '],
+]
+assert_computer_turn_ends(board, (0, 2), 'win')
+print("✓ Computer win ends game immediately")
+
+# Computer draw
+board = [
+    ['X', 'O', 'X'],
+    ['X', 'O', 'O'],
+    ['O', 'X', ' '],
+]
+assert_computer_turn_ends(board, (2, 2), 'draw')
+print("✓ Computer draw ends game immediately")
 
 print("\n" + "="*50)
 print("All tests passed! ✓")

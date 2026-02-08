@@ -1,12 +1,8 @@
-"""Board operations and utilities for Tic-Tac-Toe game.
-
-Note: Some functions have been moved to rules.py.
-This module is kept for backward compatibility.
-"""
+"""Board operations and utilities for Tic-Tac-Toe game."""
 
 import sys
 import random
-from .constants import BOARD_SIZE, PLAYER, COMPUTER, RESET, GREEN, BOLD
+from .constants import BOARD_SIZE, RESET, GREEN, BOLD
 
 
 def get_random_move(board):
@@ -77,7 +73,3 @@ def move_cursor(cursor_row, cursor_col, direction, board):
 
     return new_row, new_col
 
-
-# The following functions have been moved to rules.py for better separation of concerns
-# Kept for backward compatibility:
-# - check_winner, is_full, get_available_moves, make_move

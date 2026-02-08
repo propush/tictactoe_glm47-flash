@@ -25,7 +25,6 @@ class GameState:
         self.is_active = True
         self.game_over_reason = None
         self.winner = None
-        self.winner = None
 
     def switch_player(self):
         """Switch to the other player."""
