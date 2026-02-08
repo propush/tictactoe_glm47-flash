@@ -4,7 +4,7 @@ Uses composition to combine different AI strategies.
 """
 
 from abc import ABC, abstractmethod
-from .board import BOARD_SIZE
+from .constants import BOARD_SIZE, PLAYER, COMPUTER
 
 
 class AIStrategy(ABC):
@@ -36,26 +36,26 @@ class MediumStrategy(AIStrategy):
     def get_move(self, board):
         from .rules import TicTacToeRules as Rules
         from .board import get_random_move
-        from .constants import PLAYER
+
+        def is_winning_move(row, col, marker):
+            board[row][col] = marker
+            won = Rules.check_winner(board, marker)
+            board[row][col] = ' '
+            return won
 
         # Try to win
         for i in range(BOARD_SIZE):
             for j in range(BOARD_SIZE):
                 if board[i][j] == ' ':
-                    board[i][j] = 'O'
-                    if Rules.check_winner(board, 'O'):
+                    if is_winning_move(i, j, COMPUTER):
                         return (i, j)
-                    board[i][j] = ' '
 
         # Try to block player
         for i in range(BOARD_SIZE):
             for j in range(BOARD_SIZE):
                 if board[i][j] == ' ':
-                    board[i][j] = 'X'
-                    if Rules.check_winner(board, 'X'):
-                        board[i][j] = 'O'
+                    if is_winning_move(i, j, PLAYER):
                         return (i, j)
-                    board[i][j] = ' '
 
         # Take center if available
         if board[1][1] == ' ':
@@ -84,11 +84,11 @@ class HardStrategy(AIStrategy):
     def get_move(self, board):
         from .rules import TicTacToeRules as Rules
 
-        def minimax(board_state, depth, maximizing_player):
+        def minimax(board_state, maximizing_player, alpha, beta):
             """Minimax algorithm with alpha-beta pruning."""
-            if Rules.check_winner(board_state, 'O'):
+            if Rules.check_winner(board_state, COMPUTER):
                 return 1
-            if Rules.check_winner(board_state, 'X'):
+            if Rules.check_winner(board_state, PLAYER):
                 return -1
             if Rules.is_full(board_state):
                 return 0
@@ -98,20 +98,26 @@ class HardStrategy(AIStrategy):
                 for i in range(BOARD_SIZE):
                     for j in range(BOARD_SIZE):
                         if board_state[i][j] == ' ':
-                            board_state[i][j] = 'O'
-                            score = minimax(board_state, depth + 1, False)
+                            board_state[i][j] = COMPUTER
+                            score = minimax(board_state, False, alpha, beta)
                             board_state[i][j] = ' '
                             max_score = max(max_score, score)
+                            alpha = max(alpha, max_score)
+                            if alpha >= beta:
+                                return max_score
                 return max_score
             else:
                 min_score = float('inf')
                 for i in range(BOARD_SIZE):
                     for j in range(BOARD_SIZE):
                         if board_state[i][j] == ' ':
-                            board_state[i][j] = 'X'
-                            score = minimax(board_state, depth + 1, True)
+                            board_state[i][j] = PLAYER
+                            score = minimax(board_state, True, alpha, beta)
                             board_state[i][j] = ' '
                             min_score = min(min_score, score)
+                            beta = min(beta, min_score)
+                            if beta <= alpha:
+                                return min_score
                 return min_score
 
         best_score = -float('inf')
@@ -120,8 +126,8 @@ class HardStrategy(AIStrategy):
         for i in range(BOARD_SIZE):
             for j in range(BOARD_SIZE):
                 if board[i][j] == ' ':
-                    board[i][j] = 'O'
-                    score = minimax(board, 0, False)
+                    board[i][j] = COMPUTER
+                    score = minimax(board, False, -float('inf'), float('inf'))
                     board[i][j] = ' '
                     if score > best_score:
                         best_score = score

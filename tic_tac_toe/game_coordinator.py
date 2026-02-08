@@ -54,10 +54,7 @@ class TicTacToeGame:
             Tuple of (row, col) or None if no moves available
         """
         if self.current_strategy:
-            move = self.current_strategy.get_move(self.game_state.board)
-            if move:
-                self.game_state.board[move[0]][move[1]] = self.game_state.get_player_marker()
-            return move
+            return self.current_strategy.get_move(self.game_state.board)
         return None
 
     def play_turn(self):
@@ -74,7 +71,8 @@ class TicTacToeGame:
             return None
 
         row, col = move
-        TicTacToeRules.make_move(self.game_state.board, row, col, PLAYER)
+        if not TicTacToeRules.make_move(self.game_state.board, row, col, PLAYER):
+            return None
 
         # Check win/draw
         if TicTacToeRules.check_winner(self.game_state.board, PLAYER):
@@ -89,6 +87,9 @@ class TicTacToeGame:
         """Handle computer's turn."""
         move = self.get_computer_move()
         if move is None:
+            return None
+        row, col = move
+        if not TicTacToeRules.make_move(self.game_state.board, row, col, COMPUTER):
             return None
 
         if TicTacToeRules.check_winner(self.game_state.board, COMPUTER):
@@ -162,9 +163,6 @@ def play_game():
 
             if result['reason'] in ('win', 'draw'):
                 break
-
-            game.display_board()
-            result = game.play_turn()
 
         # Check if game is actually over
         game_result = game.check_game_over()
