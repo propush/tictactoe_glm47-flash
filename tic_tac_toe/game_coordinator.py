@@ -139,8 +139,10 @@ def play_game():
     """Main game loop."""
     score_tracker = ScoreTracker()
 
+    # Show stats at program start
+    display_scores(score_tracker)
+
     while True:
-        display_scores(score_tracker)
         display_menu()
 
         # Difficulty selection
@@ -175,7 +177,7 @@ def play_game():
         # Display result
         game.display_result()
 
-        # Display updated scores before asking to play again
+        # Show stats before play again
         display_scores(score_tracker)
 
         # Play again?
