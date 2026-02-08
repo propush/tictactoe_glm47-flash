@@ -2,7 +2,16 @@
 
 import sys
 import random
-from .constants import BOARD_SIZE, RESET, GREEN, BOLD
+from .constants import (
+    BOARD_SIZE,
+    RESET,
+    GREEN,
+    YELLOW,
+    BOLD,
+    DIM,
+    GRID_H,
+    GRID_V,
+)
 
 
 def get_random_move(board):
@@ -22,29 +31,41 @@ def get_random_move(board):
     return random.choice(available_moves) if available_moves else None
 
 
-def print_board(board, cursor_row=None, cursor_col=None):
+def print_board(board, cursor_row=None, cursor_col=None, last_move=None, winning_line=None, show_labels=False):
     """Print the current board state with optional cursor highlighting.
 
     Args:
         board: Current board state
         cursor_row: Row position of cursor (0-2), or None for no cursor
         cursor_col: Column position of cursor (0-2), or None for no cursor
+        last_move: Tuple of (row, col) for last move, or None
+        winning_line: List of (row, col) tuples for winning line, or None
+        show_labels: Whether to show faint 1-9 labels on empty cells
     """
-    sys.stdout.write("\n" + "=" * 9 + "\n")
+    rule = GRID_H * 9
+    win_set = set(winning_line or [])
+    last_move = last_move if last_move is None else tuple(last_move)
+
+    sys.stdout.write("\n" + rule + "\n")
     for i, row in enumerate(board):
-        # Build row with possible cursor highlighting
         row_str = []
         for j, cell in enumerate(row):
-            if cursor_row is not None and i == cursor_row and j == cursor_col:
-                # Highlight cursor position
-                highlighted_cell = f"{BOLD}{GREEN}{cell}{RESET}"
-                row_str.append(highlighted_cell)
-            else:
-                row_str.append(cell)
-        sys.stdout.write(" | ".join(row_str) + "\n")
+            label = str(i * BOARD_SIZE + j + 1)
+            display = cell if cell != ' ' else (label if show_labels else ' ')
+            styled = display
+
+            if (i, j) in win_set:
+                styled = f"{BOLD}{GREEN}{display}{RESET}"
+            elif cursor_row is not None and i == cursor_row and j == cursor_col:
+                styled = f"{BOLD}{YELLOW}{display}{RESET}"
+            elif last_move is not None and (i, j) == last_move:
+                styled = f"{DIM}{display}{RESET}"
+
+            row_str.append(styled)
+        sys.stdout.write(f" {GRID_V} ".join(row_str) + "\n")
         if i < BOARD_SIZE - 1:
-            sys.stdout.write("-" * 9 + "\n")
-    sys.stdout.write("=" * 9 + "\n")
+            sys.stdout.write(rule + "\n")
+    sys.stdout.write(rule + "\n")
     sys.stdout.flush()
 
 
@@ -72,4 +93,3 @@ def move_cursor(cursor_row, cursor_col, direction, board):
         new_col = min(BOARD_SIZE - 1, cursor_col + 1)
 
     return new_row, new_col
-

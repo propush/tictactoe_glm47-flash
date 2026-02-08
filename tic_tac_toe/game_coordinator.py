@@ -48,7 +48,7 @@ class TicTacToeGame:
             Legacy result dictionary with `reason` key, or None if move cancelled.
         """
         if self.game_state.is_player_turn():
-            move = get_player_move(self.game_state.board)
+            move = get_player_move(self.game_state.board, last_move=self.game_state.last_move)
             marker = PLAYER
         else:
             move = self.current_strategy.get_move(self.game_state.board) if self.current_strategy else None
@@ -60,11 +60,14 @@ class TicTacToeGame:
         row, col = move
         if not TicTacToeRules.make_move(self.game_state.board, row, col, marker):
             return None
+        self.game_state.last_move = (row, col)
 
-        if TicTacToeRules.check_winner(self.game_state.board, marker):
+        winning_line = TicTacToeRules.get_winning_line(self.game_state.board, marker)
+        if winning_line:
             result = GameResult.PLAYER_WIN if marker == PLAYER else GameResult.COMPUTER_WIN
             self.game_state.winner = 'player' if marker == PLAYER else 'computer'
             self.game_state.game_over_reason = 'win'
+            self.game_state.winning_line = winning_line
             return {'reason': 'win', 'result': result}
         if TicTacToeRules.is_full(self.game_state.board):
             self.game_state.game_over_reason = 'draw'
@@ -75,7 +78,12 @@ class TicTacToeGame:
 
     def display_board(self):
         """Display the current board state."""
-        print_board(self.game_state.board)
+        print_board(
+            self.game_state.board,
+            last_move=self.game_state.last_move,
+            winning_line=self.game_state.winning_line,
+            show_labels=True,
+        )
 
 
 def play_game():

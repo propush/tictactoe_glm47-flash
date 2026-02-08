@@ -21,23 +21,36 @@ class TicTacToeRules:
         Returns:
             True if player has won
         """
-        # Check rows
+        return TicTacToeRules.get_winning_line(board, player) is not None
+
+    @staticmethod
+    def get_winning_line(board, player):
+        """Get the winning line for the given player, if any.
+
+        Args:
+            board: Current board state
+            player: Player marker ('X' or 'O')
+
+        Returns:
+            List of (row, col) tuples for winning line, or None
+        """
+        # Rows
         for i in range(BOARD_SIZE):
             if all(board[i][j] == player for j in range(BOARD_SIZE)):
-                return True
+                return [(i, j) for j in range(BOARD_SIZE)]
 
-        # Check columns
+        # Columns
         for j in range(BOARD_SIZE):
             if all(board[i][j] == player for i in range(BOARD_SIZE)):
-                return True
+                return [(i, j) for i in range(BOARD_SIZE)]
 
-        # Check diagonals
+        # Diagonals
         if all(board[i][i] == player for i in range(BOARD_SIZE)):
-            return True
+            return [(i, i) for i in range(BOARD_SIZE)]
         if all(board[i][BOARD_SIZE - 1 - i] == player for i in range(BOARD_SIZE)):
-            return True
+            return [(i, BOARD_SIZE - 1 - i) for i in range(BOARD_SIZE)]
 
-        return False
+        return None
 
     @staticmethod
     def is_full(board):

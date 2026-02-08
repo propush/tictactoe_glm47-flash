@@ -6,12 +6,13 @@ from .board import move_cursor
 from .constants import BOARD_SIZE, PLAYER
 
 
-def get_arrow_move(stdscr, board):
+def get_arrow_move(stdscr, board, last_move=None):
     """Get move using arrow keys and Enter.
 
     Args:
         stdscr: curses window object for input
         board: Current board state
+        last_move: Tuple of (row, col) for last move, or None
 
     Returns:
         Tuple of (row, col) if move made, or None
@@ -46,12 +47,18 @@ def get_arrow_move(stdscr, board):
             col = 0
             for j in range(BOARD_SIZE):
                 is_cursor = i == cursor_row and j == cursor_col
+                is_last = last_move is not None and (i, j) == tuple(last_move)
                 # Show a visible move preview at the cursor on empty cells.
                 if is_cursor and board[i][j] == ' ':
                     cell = PLAYER
                 else:
                     cell = board[i][j]
-                attr = curses.color_pair(2) | curses.A_BOLD if is_cursor else curses.color_pair(1)
+                if is_cursor:
+                    attr = curses.color_pair(2) | curses.A_BOLD
+                elif is_last:
+                    attr = curses.color_pair(1) | curses.A_DIM
+                else:
+                    attr = curses.color_pair(1)
                 stdscr.addstr(row_y, col, cell, attr)
                 if j < BOARD_SIZE - 1:
                     stdscr.addstr(row_y, col + 1, " | ", curses.color_pair(1))
@@ -61,18 +68,18 @@ def get_arrow_move(stdscr, board):
 
         # Display instructions
         instructions_y = board_top + BOARD_SIZE * row_step
-        cursor_pos = f"Cursor at: {cursor_row * BOARD_SIZE + cursor_col + 1}"
+        cursor_pos = f"Cursor: {cursor_row * BOARD_SIZE + cursor_col + 1}"
         stdscr.addstr(instructions_y, 0, cursor_pos, curses.color_pair(2) | curses.A_BOLD)
         stdscr.addstr(
             instructions_y,
             len(cursor_pos),
-            " (Use arrow keys to move, Enter to place X)",
+            "  Arrows: move  Enter: place X",
             curses.color_pair(2) | curses.A_BOLD,
         )
         stdscr.addstr(
             instructions_y + 1,
             0,
-            "Press Ctrl+C to cancel or 'q' to quit",
+            "Ctrl+C: cancel  q: quit",
             curses.color_pair(1),
         )
         stdscr.refresh()
@@ -115,11 +122,12 @@ def get_arrow_move(stdscr, board):
         stdscr.refresh()
 
 
-def get_player_move(board):
+def get_player_move(board, last_move=None):
     """Get valid move from player.
 
     Args:
         board: Current board state
+        last_move: Tuple of (row, col) for last move, or None
 
     Returns:
         (row, col) tuple of player's move
@@ -133,7 +141,7 @@ def get_player_move(board):
             stdscr.clear()
             stdscr.refresh()
 
-            move = get_arrow_move(stdscr, board)
+            move = get_arrow_move(stdscr, board, last_move=last_move)
 
             if move is not None:
                 curses.endwin()
@@ -147,6 +155,7 @@ def get_player_move(board):
 
         # Fall back to number input
         try:
+            print("Tip: Use arrow keys to move, or enter a number 1-9.")
             move = input("Enter your move (1-9): ")
             move = int(move)
 

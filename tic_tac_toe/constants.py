@@ -20,9 +20,18 @@ class GameResult:
 
 # ANSI Color Codes
 RESET = "\033[0m"
+BOLD = "\033[1m"
+DIM = "\033[2m"
 GREEN = "\033[32m"
 RED = "\033[31m"
-BOLD = "\033[1m"
+YELLOW = "\033[33m"
+
+# UI Theme
+TITLE = "TIC-TAC-TOE"
+UI_WIDTH = 33
+BORDER_CHAR = "="
+GRID_H = "-"
+GRID_V = "|"
 
 
 # Board dimensions
